@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>more - first AI psychologist in Azerbaijan</title>
+    <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet"/>
+</head>
+<body>
+    <div class="header">
+        <a href="chat">more</a>
+        <a class="active" href="journal">Journal</a>
+    </div>
+    <div class="container">
+        <div class="title">
+            <h1>more</h1>
+            <h2>first AI psychologist in Azerbaijan</h2>
+        </div>
+        <div class="journal-container">
+            <p class="journal">{{ journal }}</p>
+        </div>
+    </div>
+</body>
+</html>

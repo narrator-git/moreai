@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>more - first AI psychologist in Azerbaijan</title>
+    <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet"/>
+</head>
+<body>
+    <div class="header">
+        <a class="active" href="chat">more</a>
+        <a href="journal">Journal</a>
+    </div>
+    <div class="container">
+        <div class="title">
+            <h1>more</h1>
+            <h2>first AI psychologist in Azerbaijan</h2>
+        </div>
+        <div class="chat-wrapper">
+            <div class="chat-container" id="chatContainer">
+                {% for message in history %}
+                    <div class="message user-message">
+                        <div class="message-content">{{ message[0] }}</div>
+                    </div>
+                    <div class="message bot-message">
+                        <div class="message-content">{{ message[1] }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <form autocomplete="off" action="/chat" class="chat-form">
+                <div class="input-container">
+                    <input type="text" name="usertext" id="usertext" placeholder="Type your message..." autofocus/>
+                    <button type="submit">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        // Автоскролл к последнему сообщению
+        const chatContainer = document.getElementById('chatContainer');
+        
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Скроллим при загрузке
+        window.addEventListener('load', scrollToBottom);
+        
+        // И при изменении содержимого (на случай если будут динамические обновления)
+        const observer = new MutationObserver(scrollToBottom);
+        observer.observe(chatContainer, { childList: true, subtree: true });
+        
+        // Фокус на поле ввода после отправки
+        document.querySelector('form').addEventListener('submit', function() {
+            setTimeout(() => {
+                document.getElementById('usertext').focus();
+            }, 100);
+        });
+    </script>
+</body>
+</html>
