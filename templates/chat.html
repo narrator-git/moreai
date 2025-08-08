@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>more - first AI psychologist in Azerbaijan</title>
-    <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet"/>
+    <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet" />
 </head>
 <body>
     <div class="header">
@@ -27,11 +27,11 @@
                     </div>
                 {% endfor %}
             </div>
-            <form autocomplete="off" action="/chat" method="get" class="chat-form" onsubmit="return sendText();">
+            <form autocomplete="off" class="chat-form">
                 <div class="input-container">
-                    <input type="text" name="usertext" id="usertext" placeholder="Введите сообщение..." autofocus/>
+                    <input type="text" name="usertext" id="usertext" placeholder="Enter message..." autofocus />
                     <button type="submit">Send</button>
-                    <button type="button" id="mic-button" title="Голосовой ввод">🎤</button>
+                    <button type="button" id="mic-button">🎤</button>
                 </div>
             </form>
         </div>
@@ -39,19 +39,53 @@
     <script>
         let voiceRecognitionActive = false;
 
-        function sendText() {
-            const usertext = document.getElementById('usertext').value;
-            if (!usertext.trim()) return false;
-            return true;
-        }
+        document.querySelector('.chat-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const usertextInput = document.getElementById('usertext');
+            const usertext = usertextInput.value.trim();
+            if (!usertext) return;
 
-        // Scroll to bottom on page load
-        window.addEventListener('load', () => {
             const chatContainer = document.getElementById('chatContainer');
+
+            // Сразу добавляем сообщение пользователя
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'message user-message';
+            userMsgDiv.innerHTML = `<div class="message-content">${usertext}</div>`;
+            chatContainer.appendChild(userMsgDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            usertextInput.value = '';
+            usertextInput.focus();
+
+            try {
+                // Отправляем запрос на сервер
+                const params = new URLSearchParams({ usertext });
+                const response = await fetch('/chat?' + params.toString(), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) throw new Error('Network error');
+
+                const data = await response.json();
+                const history = data.history;
+
+                if (history.length === 0) return;
+
+                // Берём последнее сообщение бота
+                const lastBotMessage = history[history.length - 1][1];
+
+                const botMsgDiv = document.createElement('div');
+                botMsgDiv.className = 'message bot-message';
+                botMsgDiv.innerHTML = `<div class="message-content">${lastBotMessage}</div>`;
+                chatContainer.appendChild(botMsgDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            } catch (error) {
+                alert('Ошибка при отправке сообщения: ' + error.message);
+            }
         });
 
-        document.getElementById('mic-button').addEventListener('click', function() {
+        // Голосовой ввод
+        document.getElementById('mic-button').addEventListener('click', function () {
             if (!('webkitSpeechRecognition' in window)) {
                 alert('Ваш браузер не поддерживает голосовой ввод.');
                 return;
@@ -63,27 +97,19 @@
 
             voiceRecognitionActive = true;
 
-            recognition.onresult = function(event) {
+            recognition.onresult = function (event) {
                 const transcript = event.results[0][0].transcript;
                 const input = document.getElementById('usertext');
                 input.value = transcript;
-                input.form.submit();
+                input.form.dispatchEvent(new Event('submit', { cancelable: true }));
             };
-            recognition.onerror = function(event) {
+            recognition.onerror = function (event) {
                 alert('Ошибка распознавания голоса: ' + event.error);
             };
-            recognition.onend = function() {
+            recognition.onend = function () {
                 voiceRecognitionActive = false;
             };
             recognition.start();
-        });
-
-        document.querySelector('form').addEventListener('submit', function() {
-            setTimeout(() => {
-                if (!voiceRecognitionActive) {
-                    document.getElementById('usertext').focus();
-                }
-            }, 100);
         });
     </script>
 </body>
