@@ -69,4 +69,5 @@ cleanup_db.py
 init_db.py
 
 # Development files
-env.example 
+env.example
+image.tar

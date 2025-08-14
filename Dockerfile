@@ -30,8 +30,7 @@ COPY . .
 RUN mkdir -p uploads static/speech instance
 
 # Set proper permissions
-RUN chmod +x server.py \
-    && chmod +x init_db.py
+RUN chmod +x server.py
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash moreai \
@@ -40,10 +39,6 @@ USER moreai
 
 # Expose port
 EXPOSE 8000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
 
 # Run the application
 CMD ["python", "server.py"] 
