@@ -6,6 +6,14 @@
   --user-message-bg: #b9dcc4;
   --input-bg: #ffffff;
   --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --pulse-listening-start: #47895b;
+  --pulse-listening-end: #376b42;
+  --pulse-speaking-start: #47895b;
+  --pulse-speaking-end: #76bb8b;
+  --pulse-generating-start: #72c68b;
+  --pulse-generating-end: #90e6aa;
+  --pulse-error-start: #dc2626;
+  --pulse-error-end: #b91c1c;
 }
 
 body {
@@ -60,6 +68,7 @@ body {
   height: calc(100vh - 60px); /* Вычитаем высоту header */
   padding: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .title {
@@ -166,6 +175,96 @@ button {
 
 button:hover {
   background-color: #1f6b6b;
+}
+
+#pulse-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(1);
+  animation: none;
+  box-shadow: none;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  margin-top: 250px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#pulse-circle.listening {
+  background: radial-gradient(circle at center, var(--pulse-listening-start), var(--pulse-listening-end));
+  box-shadow:
+    0 0 20px var(--pulse-listening-start),
+    0 0 40px var(--pulse-listening-end) inset;
+  opacity: 0.7;
+  animation: breath 2.5s ease-in-out infinite;
+}
+
+#pulse-circle.speaking {
+  background: linear-gradient(45deg, var(--pulse-speaking-start), var(--pulse-speaking-end));
+  box-shadow:
+    0 0 30px var(--pulse-speaking-end),
+    0 0 60px var(--pulse-speaking-start) inset;
+  opacity: 0.85;
+  animation: pulse-animation 2s ease-in-out infinite;
+}
+#pulse-circle.generating {
+  background: linear-gradient(45deg, var(--pulse-speaking-start), var(--pulse-speaking-end));
+  box-shadow:
+    0 0 30px var(--pulse-speaking-end),
+    0 0 60px var(--pulse-speaking-start) inset;
+  opacity: 0.85;
+  animation: pulse-animation 2s ease-in-out infinite;
+}
+
+#pulse-circle.error {
+  background: radial-gradient(circle at center, var(--pulse-error-start), var(--pulse-error-end));
+  box-shadow:
+    0 0 20px var(--pulse-error-start),
+    0 0 40px var(--pulse-error-end) inset;
+  opacity: 0.85;
+  transform: scale(1.1);
+  animation: none;
+}
+
+#pulse-circle.waiting {
+  background: radial-gradient(circle at center, var(--pulse-error-start), var(--pulse-error-end));
+  box-shadow:
+    0 0 20px var(--pulse-error-start),
+    0 0 40px var(--pulse-error-end) inset;
+  opacity: 0.85;
+  transform: scale(1.1);
+  animation: none;
+}
+
+#pulse-circle.hidden {
+  opacity: 0;
+  animation: none;
+  pointer-events: none;
+}
+
+@keyframes pulse-animation {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+@keyframes breath {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
 }
 
 @media (max-width: 768px) {

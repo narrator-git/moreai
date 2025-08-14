@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>more voice - first AI psychologist in Azerbaijan</title>
+  <link href="{{ url_for('static', filename='styles/style.css') }}" rel="stylesheet" >
+</head>
+<body>
+  <div class="header">
+    <a href="chat">more</a>
+    <a href="journal">Journal</a>
+    <a class="active" href="morevoice">more voice</a>
+  </div>
+
+  <div class="container">
+    <div class="title">
+      <h1>more</h1>
+      <h2>first AI psychologist in Azerbaijan</h2>
+    </div>
+
+    <div class="chat-container">
+      <div id="pulse-circle" class="listening" title="Voice Assistant" style="cursor:pointer;"></div>
+    </div>
+  </div>
+
+  <script>
+    const pulseCircle = document.getElementById('pulse-circle');
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioContext;
+    let analyser;
+    let source;
+    let silenceTimeout;
+    let audio = null;
+    let recognizing = false;
+    let isSpeaking = false;
+    let stream = null;
+    let silenceDetectionInterval;
+    let speechStartTime = 0;
+    let consecutiveSpeechDetections = 0;
+    let lastSoundTime = 0;
+
+    // Настройки чувствительности
+    const SPEECH_THRESHOLD = 15; // Порог начала записи
+    const MIN_SPEECH_DURATION = 800; // Минимальная длительность речи для начала записи (мс)
+    const SILENCE_TIMEOUT = 1500; // Таймаут после последнего звука (мс)
+    const CONSECUTIVE_DETECTIONS = 4; // Необходимое количество обнаружений подряд
+    const EXTENDED_SILENCE_TIMEOUT = 10000; // Максимальное время ожидания продолжения речи (мс)
+
+    function setStatus(status) {
+      pulseCircle.classList.remove('waiting', 'listening', 'generating', 'speaking', 'error', 'hidden');
+      if (status) {
+        pulseCircle.classList.add(status);
+      } else {
+        pulseCircle.classList.add('waiting');
+      }
+    }
+
+    async function setupAudio() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        audioContext = new AudioContext();
+        source = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        
+        return true;
+      } catch (e) {
+        console.error('Audio setup error:', e);
+        setStatus('error');
+        setTimeout(() => {
+          setStatus('waiting');
+          setupAudio();
+        }, 2000);
+        return false;
+      }
+    }
+
+    function detectSpeech() {
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(dataArray);
+      const volume = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+      
+      if (volume > SPEECH_THRESHOLD) {
+        lastSoundTime = Date.now();
+        
+        if (!speechStartTime) {
+          speechStartTime = Date.now();
+        }
+        consecutiveSpeechDetections++;
+        
+        if (consecutiveSpeechDetections >= CONSECUTIVE_DETECTIONS && 
+            (Date.now() - speechStartTime) >= MIN_SPEECH_DURATION && 
+            !recognizing && !isSpeaking) {
+          startRecording();
+        }
+      } else {
+        consecutiveSpeechDetections = 0;
+      }
+    }
+
+    async function startRecording() {
+      if (recognizing || isSpeaking) return;
+      
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.start();
+      recognizing = true;
+      setStatus('listening');
+      clearInterval(silenceDetectionInterval);
+
+      // Двойная проверка окончания речи
+      function checkSilence() {
+        const now = Date.now();
+        const timeSinceLastSound = now - lastSoundTime;
+        
+        if (timeSinceLastSound > SILENCE_TIMEOUT) {
+          // Проверяем, не было ли звука в последний момент
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(dataArray);
+          const currentVolume = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          
+          if (currentVolume > SPEECH_THRESHOLD) {
+            lastSoundTime = now;
+            silenceTimeout = setTimeout(checkSilence, SILENCE_TIMEOUT);
+          } else if (timeSinceLastSound > EXTENDED_SILENCE_TIMEOUT) {
+            // Принудительно останавливаем если слишком долгое молчание
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+            }
+          } else {
+            // Обычный случай - молчание достигло таймаута
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+            }
+          }
+        } else {
+          silenceTimeout = setTimeout(checkSilence, SILENCE_TIMEOUT);
+        }
+      }
+      
+      silenceTimeout = setTimeout(checkSilence, SILENCE_TIMEOUT);
+      
+      mediaRecorder.onstop = async () => {
+        recognizing = false;
+        clearTimeout(silenceTimeout);
+        
+        setStatus('generating');
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'audio.webm');
+          const sttResponse = await fetch('/stt', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!sttResponse.ok) throw new Error('Speech recognition error');
+          const sttResult = await sttResponse.json();
+          if (sttResult.error) throw new Error(sttResult.error);
+          
+          const transcript = sttResult.text.trim();
+          if (!transcript) {
+            setStatus('waiting');
+            startSilenceDetection();
+            return;
+          }
+
+          await sendTextToServer(transcript);
+        } catch (error) {
+          console.error('Recognition error:', error);
+          setStatus('error');
+          setTimeout(() => {
+            setStatus('waiting');
+            startSilenceDetection();
+          }, 2000);
+        }
+      };
+    }
+
+    function startSilenceDetection() {
+      speechStartTime = 0;
+      consecutiveSpeechDetections = 0;
+      lastSoundTime = 0;
+      
+      silenceDetectionInterval = setInterval(detectSpeech, 100);
+    }
+
+    async function sendTextToServer(text) {
+      try {
+        const params = new URLSearchParams({ usertext: text });
+        const responseChat = await fetch('/chat?' + params.toString(), {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        
+        if (!responseChat.ok) throw new Error('Network error');
+        const data = await responseChat.json();
+        
+        if (!data.history || data.history.length === 0) {
+          setStatus('waiting');
+          startSilenceDetection();
+          return;
+        }
+        
+        const lastBotMessage = data.history[data.history.length - 1][1];
+        const paramsTTS = new URLSearchParams({ text: lastBotMessage });
+        const responseTTS = await fetch('/tts?' + paramsTTS.toString());
+        
+        if (!responseTTS.ok) throw new Error('TTS error');
+        const blob = await responseTTS.blob();
+
+        if (audio) {
+          audio.pause();
+          audio = null;
+        }
+
+        audio = new Audio(URL.createObjectURL(blob));
+        isSpeaking = true;
+        
+        audio.onended = () => {
+          isSpeaking = false;
+          setStatus('waiting');
+          startSilenceDetection();
+        };
+        
+        audio.onerror = () => {
+          isSpeaking = false;
+          setStatus('waiting');
+          startSilenceDetection();
+        };
+
+        setStatus('speaking');
+        audio.play();
+      } catch (error) {
+        console.error('Speech playback error:', error);
+        setStatus('error');
+        setTimeout(() => {
+          setStatus('waiting');
+          startSilenceDetection();
+        }, 2000);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      setStatus('waiting');
+      const audioSetupSuccess = await setupAudio();
+      if (audioSetupSuccess) {
+        startSilenceDetection();
+      }
+    });
+</script>
+</body>
+</html>

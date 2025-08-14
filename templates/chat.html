@@ -5,11 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>more - first AI psychologist in Azerbaijan</title>
     <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet" />
+    <style>
+        /* Стили для иконки микрофона на кнопке */
+        #mic-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            font-size: 1.4rem;
+            color: var(--primary-color);
+        }
+        #mic-button svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--primary-color);
+        }
+        #mic-button:hover svg {
+            fill: #1f6b6b;
+        }
+        /* Стили для кнопки отправки с иконкой */
+        .chat-form button[type="submit"] {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            font-size: 1.4rem;
+            color: var(--primary-color);
+        }
+        .chat-form button[type="submit"] svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--primary-color);
+            transition: fill 0.2s ease;
+        }
+        .chat-form button[type="submit"]:hover svg {
+            fill: #1f6b6b;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
         <a class="active" href="chat">more</a>
         <a href="journal">Journal</a>
+        <a href="morevoice">more voice</a>
     </div>
     <div class="container">
         <div class="title">
@@ -30,8 +72,16 @@
             <form autocomplete="off" class="chat-form">
                 <div class="input-container">
                     <input type="text" name="usertext" id="usertext" placeholder="Enter message..." autofocus />
-                    <button type="submit">Send</button>
-                    <button type="button" id="mic-button">🎤</button>
+                    <button type="submit" aria-label="Send message" title="Send message">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                    <button type="button" id="mic-button" aria-label="Voice input" title="Voice input">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 14 0h-2zM11 19h2v2h-2v-2z"/>
+                        </svg>
+                    </button>
                 </div>
             </form>
         </div>
@@ -47,7 +97,6 @@
 
             const chatContainer = document.getElementById('chatContainer');
 
-            // Сразу добавляем сообщение пользователя
             const userMsgDiv = document.createElement('div');
             userMsgDiv.className = 'message user-message';
             userMsgDiv.innerHTML = `<div class="message-content">${usertext}</div>`;
@@ -58,7 +107,6 @@
             usertextInput.focus();
 
             try {
-                // Отправляем запрос на сервер
                 const params = new URLSearchParams({ usertext });
                 const response = await fetch('/chat?' + params.toString(), {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -70,7 +118,6 @@
 
                 if (history.length === 0) return;
 
-                // Берём последнее сообщение бота
                 const lastBotMessage = history[history.length - 1][1];
 
                 const botMsgDiv = document.createElement('div');
@@ -84,7 +131,6 @@
             }
         });
 
-        // Голосовой ввод
         document.getElementById('mic-button').addEventListener('click', function () {
             if (!('webkitSpeechRecognition' in window)) {
                 alert('Ваш браузер не поддерживает голосовой ввод.');
