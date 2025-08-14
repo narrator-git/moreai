@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import threading
 import time
+import logging
 from openai import OpenAI
 from pathlib import Path
 from werkzeug.utils import secure_filename
@@ -20,6 +21,23 @@ UPLOAD_FOLDER = './uploads/'
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Add request logging middleware
+@app.before_request
+def log_request_info():
+    logger.info(f'Request: {request.method} {request.url} - IP: {request.remote_addr} - User-Agent: {request.headers.get("User-Agent", "Unknown")}')
+
+@app.after_request
+def log_response_info(response):
+    logger.info(f'Response: {response.status_code} for {request.method} {request.url}')
+    return response
 
 # Initialize database
 db.init_app(app)
@@ -176,9 +194,13 @@ midnight_thread.start()
 @app.route('/')
 @app.route('/index')
 def index():
+    logger.info(f"Root route accessed - User authenticated: {current_user.is_authenticated}")
     # If user is logged in, redirect to chat to show their history
     if current_user.is_authenticated:
+        logger.info(f"Redirecting authenticated user {current_user.username} to chat")
         return redirect(url_for('getresp'))
+    
+    logger.info("Serving index.html to unauthenticated user")
     return render_template('index.html')
 
 @app.route('/login')
