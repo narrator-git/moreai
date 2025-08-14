@@ -10,6 +10,7 @@ from openai import OpenAI
 from pathlib import Path
 from werkzeug.utils import secure_filename
 
+
 # Import our authentication modules
 from config import Config
 from models import db, User, Chat

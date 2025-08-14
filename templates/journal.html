@@ -7,11 +7,7 @@
     <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet" />
 </head>
 <body>
-    <div class="header">
-        <a href="chat">more</a>
-        <a class="active" href="journal">Journal</a>
-        <a href="morevoice">more voice</a>
-    </div>
+    {% include 'nav.html' %}
     <div class="container">
         <div class="title">
             <h1>more</h1>
