@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  moreai:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///moreai.db}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      # Persist database and uploads
+      - moreai_data:/app/instance
+      - moreai_uploads:/app/uploads
+      - moreai_speech:/app/static/speech
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  moreai_data:
+    driver: local
+  moreai_uploads:
+    driver: local
+  moreai_speech:
+    driver: local 

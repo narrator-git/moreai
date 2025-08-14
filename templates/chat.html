@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>more - first AI psychologist in Azerbaijan</title>
+    <title>MoreAI Chat</title>
     <link href="{{ url_for('static', filename='styles/style.css')}}" rel="stylesheet" />
     <style>
         /* Стили для иконки микрофона на кнопке */
@@ -45,28 +45,36 @@
         .chat-form button[type="submit"]:hover svg {
             fill: #1f6b6b;
         }
+        
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 0.25rem;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <a class="active" href="chat">more</a>
-        <a href="journal">Journal</a>
-        <a href="morevoice">more voice</a>
-    </div>
+    {% include 'nav.html' %}
     <div class="container">
         <div class="title">
-            <h1>more</h1>
-            <h2>first AI psychologist in Azerbaijan</h2>
+            <h1>MoreAI Chat</h1>
+            <h2>Your Personal AI Companion</h2>
         </div>
         <div class="chat-wrapper">
             <div class="chat-container" id="chatContainer">
                 {% for message in history %}
-                    <div class="message user-message">
-                        <div class="message-content">{{ message[0] }}</div>
-                    </div>
-                    <div class="message bot-message">
-                        <div class="message-content">{{ message[1] }}</div>
-                    </div>
+                    {% if message.type == 'user' %}
+                        <div class="message user-message">
+                            <div class="message-content">{{ message.message }}</div>
+                            <div class="message-timestamp">{{ message.timestamp }}</div>
+                        </div>
+                    {% elif message.type == 'assistant' %}
+                        <div class="message bot-message">
+                            <div class="message-content">{{ message.message }}</div>
+                            <div class="message-timestamp">{{ message.timestamp }}</div>
+                        </div>
+                    {% endif %}
                 {% endfor %}
             </div>
             <form autocomplete="off" class="chat-form">
@@ -118,13 +126,15 @@
 
                 if (history.length === 0) return;
 
-                const lastBotMessage = history[history.length - 1][1];
-
-                const botMsgDiv = document.createElement('div');
-                botMsgDiv.className = 'message bot-message';
-                botMsgDiv.innerHTML = `<div class="message-content">${lastBotMessage}</div>`;
-                chatContainer.appendChild(botMsgDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+                // Find the last assistant message
+                const lastBotMessage = history[history.length - 1];
+                if (lastBotMessage.type === 'assistant') {
+                    const botMsgDiv = document.createElement('div');
+                    botMsgDiv.className = 'message bot-message';
+                    botMsgDiv.innerHTML = `<div class="message-content">${lastBotMessage.message}</div>`;
+                    chatContainer.appendChild(botMsgDiv);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
 
             } catch (error) {
                 alert('Ошибка при отправке сообщения: ' + error.message);
