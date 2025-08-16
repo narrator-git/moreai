@@ -38,11 +38,11 @@
     let lastSoundTime = 0;
 
     // Настройки чувствительности
-    const SPEECH_THRESHOLD = 15; // Порог начала записи
+    const SPEECH_THRESHOLD = 60; // Порог начала записи
     const MIN_SPEECH_DURATION = 800; // Минимальная длительность речи для начала записи (мс)
     const SILENCE_TIMEOUT = 1500; // Таймаут после последнего звука (мс)
     const CONSECUTIVE_DETECTIONS = 4; // Необходимое количество обнаружений подряд
-    const EXTENDED_SILENCE_TIMEOUT = 10000; // Максимальное время ожидания продолжения речи (мс)
+    const EXTENDED_SILENCE_TIMEOUT = 5000; // Максимальное время ожидания продолжения речи (мс)
 
     function setStatus(status) {
       pulseCircle.classList.remove('waiting', 'listening', 'generating', 'speaking', 'error', 'hidden');
@@ -208,7 +208,8 @@
           return;
         }
         
-        const lastBotMessage = data.history[data.history.length - 1][1];
+        const lastBotMessageObj = data.history.slice().reverse().find(msg => msg.type === 'assistant');
+        const lastBotMessage = lastBotMessageObj ? lastBotMessageObj.message : "";
         const paramsTTS = new URLSearchParams({ text: lastBotMessage });
         const responseTTS = await fetch('/tts?' + paramsTTS.toString());
         

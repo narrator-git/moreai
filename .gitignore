@@ -1,6 +1,8 @@
 .venv
 .env
 admin.py
-tester.py
-tester.py.txt
 image.tar
+adminprevid.txt
+passkey.txt
+audio.webm
+speech.mp3
